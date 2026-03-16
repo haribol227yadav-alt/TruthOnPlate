@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import mysql.connector
+import os
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
@@ -12,8 +14,22 @@ db_config = {
 }
 
 def get_db_connection():
-    return mysql.connector.connect(**db_config)
+    # Render will provide this 'DATABASE_URL' automatically later
+    db_url = os.environ.get('DATABASE_URL')
 
+    if db_url:
+        # Parse the Aiven URI
+        url = urlparse(db_url)
+        return mysql.connector.connect(
+            host=url.hostname,
+            port=url.port,
+            user=url.username,
+            password=url.password,
+            database=url.path[1:],
+            ssl_ca="ca.pem" # Aiven requires SSL for cloud connections
+        )
+    # Your local DU study setup fallback
+    return mysql.connector.connect(host='localhost', user='root', password='futuristic', database='TruthOnPlate')
 # --- USER REGISTRATION LOGIC ---
 @app.route('/register', methods=['POST'])
 def register_user():
