@@ -1,12 +1,8 @@
--- ============================================
--- CREATE DATABASE
--- ============================================
+
 CREATE DATABASE TruthOnPlate;
 USE TruthOnPlate;
 
--- ============================================
--- PRODUCTS TABLE
--- ============================================
+
 CREATE TABLE Products (
     product_id VARCHAR(5) PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL,
@@ -19,9 +15,7 @@ CREATE TABLE Products (
     calories DECIMAL(6,2)
 );
 
--- ============================================
--- PRODUCT INGREDIENTS TABLE
--- ============================================
+
 CREATE TABLE Product_Ingredients (
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_id VARCHAR(5),
@@ -31,9 +25,7 @@ CREATE TABLE Product_Ingredients (
         ON DELETE CASCADE
 );
 
--- ============================================
 -- FSSAI STANDARDS TABLE
--- ============================================
 CREATE TABLE FSSAI_Standards (
     category VARCHAR(100) PRIMARY KEY,
     sugar_alert VARCHAR(100),
@@ -41,9 +33,8 @@ CREATE TABLE FSSAI_Standards (
     banned_limit TEXT
 );
 
--- ============================================
 -- HARMFUL INGREDIENTS MASTER
--- ============================================
+
 CREATE TABLE Harmful_Ingredients_Master (
     id INT AUTO_INCREMENT PRIMARY KEY,
     category VARCHAR(100),
@@ -51,9 +42,8 @@ CREATE TABLE Harmful_Ingredients_Master (
     key_alert VARCHAR(255)
 );
 
--- ============================================
 -- INSERT PRODUCTS (P1 – P85)
--- ============================================
+
 INSERT INTO Products VALUES
 ('P1','Coca-Cola','Coca-Cola','Cold Drinks',10.6,0.02,0,0,42.4),
 ('P2','Thums Up','Coca-Cola','Cold Drinks',10,0.03,0,0,40),
@@ -185,9 +175,8 @@ INSERT INTO Products VALUES
 
 ('P85','Brown Rice','India Gate','Grains',0.5,0,2.7,7.5,111);
 
--- ============================================
 -- INSERT PRODUCT INGREDIENTS
--- ============================================
+
 INSERT INTO Product_Ingredients (product_id, ingredient_name) VALUES
 ('P1','Carbonated Water'),('P1','Sugar'),('P1','Acidity Regulator'),
 ('P2','Carbonated Water'),('P2','Sugar'),
@@ -251,9 +240,7 @@ INSERT INTO Product_Ingredients (product_id, ingredient_name) VALUES
 ('P84','Milk'),
 ('P85','Rice');
 
--- ============================================
 -- INSERT FSSAI STANDARDS
--- ============================================
 INSERT INTO FSSAI_Standards VALUES
 ('Cold Drinks','>10 g/100ml','Declare Sodium','Caffeine >200 mg/L not allowed'),
 ('Fruit Juices','Added Sugar not recommended','No fixed limit','Artificial sweeteners banned'),
@@ -281,9 +268,9 @@ INSERT INTO FSSAI_Standards VALUES
 ('Seeds','Low sugar','Low sodium','Chemical coating banned'),
 ('Treats','High sugar','Low sodium','Artificial colors banned'),
 ('Superfood','Low sugar','Low sodium','No additives allowed');
--- ============================================
+
 -- INSERT HARMFUL INGREDIENTS
--- ============================================
+
 INSERT INTO Harmful_Ingredients_Master (category,banned_ingredients,key_alert) VALUES
 ('Cold Drinks','Aspartame, Phosphoric Acid','Obesity & tooth decay'),
 ('Energy Drinks','Excess Caffeine','Heart issues'),
@@ -296,9 +283,9 @@ INSERT INTO Harmful_Ingredients_Master (category,banned_ingredients,key_alert) V
 ('Namkeen','Reused Oil','Digestive issues'),
 ('Dairy','Synthetic Milk','Severe health hazard');
 
--- ============================================
+
 -- USERS TABLE
--- ============================================
+
 CREATE TABLE Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
@@ -306,9 +293,8 @@ CREATE TABLE Users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- USER ALLERGIES TABLE
--- ============================================
+
 CREATE TABLE User_Allergies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
@@ -318,84 +304,6 @@ CREATE TABLE User_Allergies (
         ON DELETE CASCADE
 );
 
--- =====================================================
--- SECTION 1: BASIC VERIFICATION QUERIES
--- Purpose: To verify whether data is correctly inserted
--- =====================================================
-
--- QUERY 1.1: Check total number of products in database
-SELECT COUNT(*) AS Total_Products
-FROM Products;
-
--- QUERY 1.2: Check how many products exist in each category
-SELECT category,
-       COUNT(*) AS Product_Count
-FROM Products
-GROUP BY category
-ORDER BY Product_Count DESC;
-
--- QUERY 1.3: Check number of FSSAI standards entries
-SELECT COUNT(*) AS FSSAI_Standards_Count
-FROM FSSAI_Standards;
-
--- QUERY 1.4: Check number of harmful ingredient categories
-SELECT COUNT(*) AS Harmful_Ingredients_Count
-FROM Harmful_Ingredients_Master;
-
--- =====================================================
--- SECTION 2: INGREDIENT ANALYSIS
--- =====================================================
-
--- QUERY 2.1: Count number of ingredients used in each product
--- Purpose:
--- To identify highly processed products
--- Products with more ingredients are generally less healthy
-SELECT p.product_id,
-       p.product_name,
-       COUNT(pi.ingredient_name) AS Ingredient_Count
-FROM Products p
-LEFT JOIN Product_Ingredients pi
-       ON p.product_id = pi.product_id
-GROUP BY p.product_id, p.product_name
-ORDER BY Ingredient_Count DESC;
-
--- =====================================================
--- SECTION 3: HIGH SUGAR PRODUCT DETECTION
--- =====================================================
-
--- QUERY 3.1: Identify products with high sugar content
--- Condition:
--- Sugar more than 15g per 100g
--- Purpose:
--- To mark unhealthy products
-SELECT product_name,
-       sugar_per_100g
-FROM Products
-WHERE sugar_per_100g > 15;
-
--- =====================================================
--- SECTION 4: FSSAI COMPLIANCE CHECK
--- =====================================================
-
--- QUERY 4.1: Compare product sugar values with FSSAI sugar alerts
--- Purpose:
--- To check whether products fall under FSSAI warning categories
-SELECT p.product_name,
-       p.category,
-       p.sugar_per_100g,
-       f.sugar_alert
-FROM Products p
-JOIN FSSAI_Standards f
-     ON p.category = f.category;
-     
--- =====================================================
--- SECTION 5: VIEW CREATION – PRODUCT HEALTH REPORT
--- =====================================================
-
--- VIEW NAME: Product_Health_Report
--- Purpose:
--- Creates a reusable health summary
--- Combines nutrition data with FSSAI alerts
 CREATE VIEW Product_Health_Report AS
 SELECT p.product_name,
        p.brand,
@@ -408,74 +316,7 @@ FROM Products p
 JOIN FSSAI_Standards f
      ON p.category = f.category;
 
--- QUERY 5.1: Display Product Health Report
--- Purpose:
--- To see complete health analysis in one table
-SELECT * FROM Product_Health_Report;
 
--- =====================================================
--- SECTION 6: STORED PROCEDURE – HEALTHY PRODUCT FILTER
--- =====================================================
-
--- PROCEDURE NAME: GetHealthyProducts
--- Input: maxSugar
--- Purpose:
--- Fetch products having sugar less than or equal to given value
-DELIMITER //
-
-CREATE PROCEDURE GetHealthyProducts(IN maxSugar DECIMAL(6,2))
-BEGIN
-    SELECT product_name,
-           sugar_per_100g
-    FROM Products
-    WHERE sugar_per_100g <= maxSugar;
-END //
-
-DELIMITER ;
-
--- PROCEDURE CALL:
--- Example: Get products having sugar ≤ 5g per 100g
-CALL GetHealthyProducts(5);
-
--- =====================================================
--- SECTION 7: DASHBOARD SUPPORT QUERIES (SAFE EATS)
--- =====================================================
-
--- VIEW 7.1: Brand vs Brand Nutrition Comparison
--- Purpose:
--- Used for "Brand vs Brand" feature in dashboard
--- Shows average nutrition values by brand & category
-CREATE VIEW Brand_Nutrition_Comparison AS
-SELECT brand,
-       category,
-       AVG(sugar_per_100g) AS avg_sugar,
-       AVG(salt_per_100g) AS avg_salt,
-       AVG(fat_per_100g) AS avg_fat
-FROM Products
-GROUP BY brand, category;
-
--- VIEW 7.2: Products Beyond Nutrient Limits
--- Purpose:
--- Backend for "Beyond Nutrient Limits" section
--- Identifies products exceeding safe sugar or salt levels
-CREATE VIEW Products_Beyond_Limits AS
-SELECT p.product_name,
-       p.brand,
-       p.category,
-       p.sugar_per_100g,
-       p.salt_per_100g,
-       f.sugar_alert,
-       f.sodium_alert
-FROM Products p
-JOIN FSSAI_Standards f
-     ON p.category = f.category
-WHERE p.sugar_per_100g > 15
-   OR p.salt_per_100g > 1;
-   
--- VIEW 7.3: Harmful Ingredient Alert System
--- Purpose:
--- Supports "Harmful Ingredient Alert – Analyze" feature
--- Shows harmful ingredients based on product category
 CREATE VIEW Harmful_Product_Analyzer AS
 SELECT DISTINCT p.product_name,
        p.brand,
@@ -487,34 +328,6 @@ JOIN Product_Ingredients pi
      ON p.product_id = pi.product_id
 JOIN Harmful_Ingredients_Master h
      ON p.category = h.category;
-
--- =====================================================
--- SECTION 8: ALLERGY ALERT SYSTEM
--- =====================================================
-
--- PROCEDURE NAME: AllergyAlert
--- Input: allergy_name
--- Purpose:
--- Finds products containing ingredients allergic to user
-DELIMITER //
-
-CREATE PROCEDURE AllergyAlert(IN allergy_name VARCHAR(100))
-BEGIN
-    SELECT DISTINCT p.product_name,
-                    p.brand,
-                    p.category
-    FROM Products p
-    JOIN Product_Ingredients pi
-         ON p.product_id = pi.product_id
-    WHERE pi.ingredient_name
-          LIKE CONCAT('%', allergy_name, '%');
-END //
-
-DELIMITER ;
-
--- PROCEDURE CALL EXAMPLE:
--- Find products containing peanuts
-CALL AllergyAlert('Peanuts');
 
 
 
